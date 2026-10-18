@@ -530,15 +530,22 @@ const tvOpen = {
 // a button by name and gets null when the appliance lacks it, so sections
 // shrink to what the model actually has. Callers finish with a catch-all
 // section built from `rest()`, so no button is ever hidden.
-function buttonPanel(card, buttons, labels, icons, press) {
+function buttonPanel(card, buttons, labels, icons, press, learned = []) {
   const avail = new Set(buttons.map(b => b.name));
   const used = new Set();
+  const pool = learned.slice();
+  const takeLearned = name => {
+    const keys = [name, label(labels, name), ...(LEARNED_ALIASES[name] || [])].map(normName);
+    const i = pool.findIndex(sig => keys.includes(normName(sig.name)));
+    return i < 0 ? null : pool.splice(i, 1)[0];
+  };
   const btn = (name, opts = {}) => {
     if (!avail.has(name) || used.has(name)) return null;
     used.add(name);
     const text = label(labels, name);
+    const sig = takeLearned(name);
     const b = el("button", {
-      class: opts.class || null, title: text, "aria-label": text,
+      class: opts.class || null, title: sig ? `${text}（学習した信号）` : text, "aria-label": text,
       "aria-pressed": opts.pressed === undefined ? null : String(opts.pressed),
       style: opts.style || null,
     });
@@ -547,7 +554,7 @@ function buttonPanel(card, buttons, labels, icons, press) {
     else if (icons[name]) b.innerHTML = icon(icons[name]);
     else b.textContent = text;
     b.addEventListener("click", action(b, async () => {
-      const r = await press(name);
+      const r = await (sig ? sendSignal(sig) : press(name));
       opts.after && opts.after();
       return r;
     }));
@@ -560,6 +567,7 @@ function buttonPanel(card, buttons, labels, icons, press) {
   return {
     avail, btn, box,
     first: (...names) => names.map(n => btn(n)).find(Boolean) || null,
+    unmatched: () => pool,
     rest: () => buttons.map(b => btn(b.name)),
     section(title, body) {
       if (!body) return;
@@ -582,6 +590,30 @@ function buttonPanel(card, buttons, labels, icons, press) {
   };
 }
 
+const sendSignal = sig => api(`/api/signals/${sig.id}/send`, {});
+
+// Buttons the user taught Remo by hand. Preset appliances (TV, light, aircon)
+// can carry these too, e.g. to cover a key the preset gets wrong.
+function learnedSection(card, signals) {
+  if (!signals || !signals.length) return;
+  const row = el("div", { class: "grid ir" });
+  for (const sig of signals) {
+    const b = el("button", { text: sig.name, title: sig.name });
+    b.addEventListener("click", action(b, () => sendSignal(sig)));
+    row.appendChild(b);
+  }
+  card.appendChild(el("div", { class: "sec" }, [el("div", { class: "sec-label", text: "学習したボタン" }), row]));
+}
+
+// A preset's IR code does not match every model. When the user has taught
+// Remo a button under the same name ("BS", "Hulu", "オプション"...), that
+// learned signal replaces the preset button in place. Extra spellings:
+const LEARNED_ALIASES = {
+  "input-terrestrial": ["地上波", "地上デジタル", "地上"],
+  "power": ["電源"], "select-input-src": ["入力"],
+};
+const normName = t => t.normalize("NFKC").trim().toLowerCase().replace(/[\s_-]+/g, "");
+
 function renderLight(a) {
   const st = a.light && a.light.state;
   const isOn = !!st && st.power === "on";
@@ -595,7 +627,7 @@ function renderLight(a) {
     card.replaceWith(renderLight(a));
   };
   const p = buttonPanel(card, (a.light && a.light.buttons) || [], LIGHT_LABELS, LIGHT_ICONS,
-    name => api(`/api/appliances/${a.id}/light`, { button: name }));
+    name => api(`/api/appliances/${a.id}/light`, { button: name }), a.signals || []);
   const known = !!st && !!st.power;
 
   p.section(null, p.box("btn-row big", [
@@ -612,6 +644,7 @@ function renderLight(a) {
     p.btn("all-off", { tile: true, after: setPower("off") }),
   ]));
   p.section("その他", p.box("grid", p.rest()));
+  learnedSection(card, p.unmatched());
   return card;
 }
 
@@ -621,7 +654,7 @@ function renderTV(a) {
   const card = cardShell(a.nickname, "テレビ", input ? { text: input } : null);
 
   const p = buttonPanel(card, (a.tv && a.tv.buttons) || [], TV_LABELS, TV_ICONS,
-    name => api(`/api/appliances/${a.id}/tv`, { button: name }));
+    name => api(`/api/appliances/${a.id}/tv`, { button: name }), a.signals || []);
   const { avail, btn, box, first, section, folded } = p;
 
   section(null, box("btn-row", [
@@ -672,7 +705,10 @@ function renderTV(a) {
     btn("record", { class: "rec" }),
   ]));
 
-  folded("more", "その他", box("grid", p.rest()));
+  // Build その他 first: it is the last place a learned override can match.
+  const more = box("grid", p.rest());
+  learnedSection(card, p.unmatched());
+  folded("more", "その他", more);
 
   return card;
 }
@@ -771,6 +807,7 @@ function renderAircon(a) {
     }
     card.appendChild(el("div", { class: "sec" }, [row]));
   }
+  learnedSection(card, a.signals);
 
   return card;
 }
@@ -781,7 +818,7 @@ function renderSignals(a) {
   const isLight = a.image === "ico_light";
   const card = cardShell(a.nickname, isLight ? "照明（学習リモコン）" : "リモコン");
   const isPower = sig => sig.image === "ico_io" || /^(電源|power|on\/off)$/i.test(sig.name);
-  const send = sig => api(`/api/signals/${sig.id}/send`, {});
+  const send = sendSignal;
 
   const power = a.signals.find(isPower);
   if (power) {
