@@ -22,6 +22,8 @@
     --danger-bg: #fee2e2;
     --warn: #92400e;
     --warn-bg: #fef3c7;
+    --cool: #2563eb; --warm: #ea580c; --dry: #0d9488; --blow: #64748b; --auto: #7c3aed;
+    --lamp: #b45309; --lamp-bg: #fef3c7;
     --radius: 12px;
     --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.04);
   }
@@ -31,6 +33,8 @@
       --fg-dim: #9aa1ab; --line: #2a2f38; --accent: #3b82f6;
       --on: #4ade80; --on-bg: #14341f; --danger: #fca5a5; --danger-bg: #3b1616;
       --warn: #fcd34d; --warn-bg: #3a2f10;
+      --cool: #60a5fa; --warm: #fb923c; --dry: #2dd4bf; --blow: #94a3b8; --auto: #a78bfa;
+      --lamp: #fcd34d; --lamp-bg: #3a2f10;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
     }
   }
@@ -117,10 +121,10 @@
   .temp button { width: 48px; height: 48px; border-radius: 50%; font-size: 20px; padding: 0; }
 
   /* TV: laid out like a physical remote instead of one long grid. */
-  .tv-sec + .tv-sec { margin-top: 14px; }
-  .tv-label { font-size: 11px; color: var(--fg-dim); margin-bottom: 6px; letter-spacing: .04em; }
-  .tv-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
-  .tv-row button { padding: 10px 2px; font-size: 13px; white-space: nowrap; }
+  .sec + .sec { margin-top: 14px; }
+  .sec-label { font-size: 11px; color: var(--fg-dim); margin-bottom: 6px; letter-spacing: .04em; }
+  .btn-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  .btn-row button { padding: 10px 2px; font-size: 13px; white-space: nowrap; }
   button.power { color: var(--danger); font-weight: 600; }
   button.rec { color: var(--danger); }
   .numpad { display: grid; gap: 8px; grid-template-columns: repeat(4, 1fr); }
@@ -146,19 +150,71 @@
   .colors button:hover:not(:disabled) { filter: brightness(1.1); }
   .media { display: grid; gap: 8px; grid-template-columns: repeat(5, 1fr); }
   .media button { padding: 9px 0; font-size: 12px; white-space: nowrap; }
-  .tv-sec .grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
-  .tv-sec .grid button { padding: 9px 6px; font-size: 13px; }
+  .sec .grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+  .sec .grid button { padding: 9px 6px; font-size: 13px; }
 
-  details.tv-sec > summary {
+  details.sec > summary {
     cursor: pointer; font-size: 12px; color: var(--fg-dim); padding: 4px 0;
     list-style: none; user-select: none;
   }
-  details.tv-sec > summary::-webkit-details-marker { display: none; }
-  details.tv-sec > summary::before { content: "▸ "; }
-  details.tv-sec[open] > summary::before { content: "▾ "; }
-  details.tv-sec[open] > summary { margin-bottom: 6px; }
+  details.sec > summary::-webkit-details-marker { display: none; }
+  details.sec > summary::before { content: "▸ "; }
+  details.sec[open] > summary::before { content: "▾ "; }
+  details.sec[open] > summary { margin-bottom: 6px; }
 
   svg.ic { width: 20px; height: 20px; display: block; margin: auto; }
+  .btn-row.big button { padding: 12px 4px; }
+  button:has(> svg.ic + span) {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  }
+  button > svg.ic + span { font-size: 12px; }
+  .btn-row button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .btn-row button.lamp[aria-pressed="true"] {
+    border-color: var(--lamp); color: var(--lamp); background: var(--lamp-bg);
+  }
+  /* A learned remote has no state, so only the icon hints at the lamp. */
+  button.ir-power.lamp svg { color: var(--lamp); }
+  button.ir-power { width: 100%; padding: 12px; }
+  /* Learned signal names are free text, so a long one like "オフタイマー"
+     gets the width it needs instead of an equal column it overflows. */
+  .grid.ir { display: flex; flex-wrap: wrap; }
+  .grid.ir button { flex: 1 0 64px; padding: 10px 8px; font-size: 14px; white-space: nowrap; }
+
+  .hrocker {
+    display: grid; grid-template-columns: 52px 1fr 52px; align-items: center;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--card-2); overflow: hidden;
+  }
+  .hrocker button { border: 0; border-radius: 0; background: transparent; height: 42px; padding: 0; }
+  .hrocker button:hover:not(:disabled) { background: var(--card); }
+  .hrocker span { font-size: 12px; color: var(--fg-dim); text-align: center; }
+
+  /* Aircon: the card takes the colour of the current mode while running. */
+  .card.ac { --mode: var(--accent); }
+  .card.ac[data-mode="cool"] { --mode: var(--cool); }
+  .card.ac[data-mode="warm"] { --mode: var(--warm); }
+  .card.ac[data-mode="dry"]  { --mode: var(--dry); }
+  .card.ac[data-mode="blow"] { --mode: var(--blow); }
+  .card.ac[data-mode="auto"] { --mode: var(--auto); }
+  .card.ac:not(.off) { border-top: 3px solid var(--mode); }
+  .ac-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .ac .temp output { font-size: 38px; min-width: 104px; }
+  .ac:not(.off) .temp output { color: var(--mode); }
+  .ac.off .temp output { color: var(--fg-dim); }
+  .ac-notemp { color: var(--fg-dim); font-size: 13px; }
+  .ac-power { width: 64px; height: 64px; border-radius: 50%; padding: 0; flex: none; }
+  .ac-power[aria-pressed="true"] { background: var(--mode); color: #fff; border-color: transparent; }
+  .ac-modes { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); margin-bottom: 4px; }
+  .ac-modes button { padding: 9px 2px; --m: var(--accent); }
+  .ac-modes [data-mode="cool"] { --m: var(--cool); }
+  .ac-modes [data-mode="warm"] { --m: var(--warm); }
+  .ac-modes [data-mode="dry"]  { --m: var(--dry); }
+  .ac-modes [data-mode="blow"] { --m: var(--blow); }
+  .ac-modes [data-mode="auto"] { --m: var(--auto); }
+  .ac-modes button[aria-pressed="true"] { border-color: var(--m); color: var(--m); background: var(--card-2); }
+  .ac:not(.off) .ac-modes button[aria-pressed="true"] { background: var(--m); color: #fff; }
+  .ac .seg button[aria-pressed="true"] { background: var(--mode); }
+  .ac.off .seg button[aria-pressed="true"] { background: var(--fg-dim); }
+  .ac .row { margin-top: 10px; margin-bottom: 0; }
 
   .sensors {
     display: grid; gap: 10px; margin-bottom: 14px;
@@ -327,6 +383,23 @@ const TV_ICONS = {
 const TV_COLORS = { blue: "#2563eb", red: "#dc2626", green: "#16a34a", yellow: "#eab308" };
 // Values of tv.state.input mapped to the buttons that select them.
 const TV_INPUTS = { t: "input-terrestrial", bs: "input-bs", cs: "input-cs" };
+const POWER_ICON = "M12 3v8M6.3 6.3a8 8 0 1 0 11.4 0";
+const MODE_ICONS = {
+  cool: "M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5",
+  warm: "M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  dry: "M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.5 6-11z",
+  blow: "M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7",
+  auto: "M6 19l6-14 6 14M8.5 14h7",
+};
+const AC_BUTTON_LABELS = { "airdir-swing": "風向スイング", "airdir-tilt": "風向切替" };
+const BULB = "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z";
+const LIGHT_ICONS = {
+  "on": BULB, "off": POWER_ICON, "all-off": POWER_ICON, "on-100": "M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  "on-favorite": "M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z",
+  "night": "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+  "bright-up": "M12 5v14M5 12h14", "bright-down": "M5 12h14",
+  "colortemp-up": "M12 5v14M5 12h14", "colortemp-down": "M5 12h14",
+};
 const MODE_LABELS = { cool: "冷房", warm: "暖房", dry: "除湿", blow: "送風", auto: "自動" };
 const DIR_LABELS  = { auto: "自動", swing: "スイング", still: "固定" };
 const INPUT_LABELS = { t: "地デジ", bs: "BS", cs: "CS" };
@@ -432,27 +505,6 @@ function cardShell(title, subtitle, pill) {
   return card;
 }
 
-function buttonRow(buttons, labels, onPress) {
-  const row = el("div", { class: "grid" });
-  for (const b of buttons) {
-    const btn = el("button", { text: label(labels, b.name), title: b.name });
-    btn.addEventListener("click", action(btn, () => onPress(b.name)));
-    row.appendChild(btn);
-  }
-  return row;
-}
-
-function renderLight(a) {
-  const st = a.light && a.light.state;
-  const card = cardShell(a.nickname, "照明",
-    st && st.power ? { text: st.power === "on" ? "点灯中" : "消灯", on: st.power === "on" } : null);
-  card.appendChild(buttonRow(
-    (a.light && a.light.buttons) || [], LIGHT_LABELS,
-    name => api(`/api/appliances/${a.id}/light`, { button: name })
-  ));
-  return card;
-}
-
 function icon(d) {
   const filled = d.startsWith("*");
   const paint = filled
@@ -461,35 +513,38 @@ function icon(d) {
   return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path ${paint} d="${filled ? d.slice(1) : d}"/></svg>`;
 }
 
+// An icon above a short caption, for tiles like the aircon modes.
+function iconTile(b, d, text) {
+  b.innerHTML = d ? icon(d) : "";
+  b.appendChild(el("span", { text }));
+  return b;
+}
+
 // Remembered per section so the periodic re-render does not snap them shut.
 const tvOpen = {
   get(k) { try { return localStorage.getItem("tvOpen:" + k) === "1"; } catch (_) { return false; } },
   set(k, v) { try { localStorage.setItem("tvOpen:" + k, v ? "1" : "0"); } catch (_) {} },
 };
 
-function renderTV(a) {
-  const st = a.tv && a.tv.state;
-  const input = st && st.input ? (INPUT_LABELS[st.input] || st.input.toUpperCase()) : "";
-  const card = cardShell(a.nickname, "テレビ", input ? { text: input } : null);
-
-  const avail = new Set(((a.tv && a.tv.buttons) || []).map(b => b.name));
+// Layout helpers shared by the TV and light cards. Each layout slot asks for
+// a button by name and gets null when the appliance lacks it, so sections
+// shrink to what the model actually has. Callers finish with a catch-all
+// section built from `rest()`, so no button is ever hidden.
+function buttonPanel(card, buttons, labels, icons, press) {
+  const avail = new Set(buttons.map(b => b.name));
   const used = new Set();
-  const press = name => api(`/api/appliances/${a.id}/tv`, { button: name });
-
-  // Each layout slot asks for a button by name and gets null when this TV
-  // lacks it, so sections shrink to what the model actually has. Anything
-  // never asked for ends up under その他, so no button is ever hidden.
   const btn = (name, opts = {}) => {
     if (!avail.has(name) || used.has(name)) return null;
     used.add(name);
-    const text = label(TV_LABELS, name);
+    const text = label(labels, name);
     const b = el("button", {
       class: opts.class || null, title: text, "aria-label": text,
       "aria-pressed": opts.pressed === undefined ? null : String(opts.pressed),
       style: opts.style || null,
     });
     if (opts.text !== undefined) b.textContent = opts.text;
-    else if (TV_ICONS[name]) b.innerHTML = icon(TV_ICONS[name]);
+    else if (opts.tile && icons[name]) iconTile(b, icons[name], text);
+    else if (icons[name]) b.innerHTML = icon(icons[name]);
     else b.textContent = text;
     b.addEventListener("click", action(b, async () => {
       const r = await press(name);
@@ -498,25 +553,78 @@ function renderTV(a) {
     }));
     return b;
   };
-  const first = (...names) => names.map(n => btn(n)).find(Boolean) || null;
   const box = (cls, kids) => {
     kids = kids.filter(Boolean);
     return kids.length ? el("div", { class: cls }, kids) : null;
   };
-  const section = (title, body) => {
-    if (!body) return;
-    card.appendChild(el("div", { class: "tv-sec" },
-      title ? [el("div", { class: "tv-label", text: title }), body] : [body]));
+  return {
+    avail, btn, box,
+    first: (...names) => names.map(n => btn(n)).find(Boolean) || null,
+    rest: () => buttons.map(b => btn(b.name)),
+    section(title, body) {
+      if (!body) return;
+      card.appendChild(el("div", { class: "sec" },
+        title ? [el("div", { class: "sec-label", text: title }), body] : [body]));
+    },
+    folded(key, title, body) {
+      if (!body) return;
+      const d = el("details", { class: "sec" }, [el("summary", { text: title }), body]);
+      d.open = tvOpen.get(key);
+      d.addEventListener("toggle", () => tvOpen.set(key, d.open));
+      card.appendChild(d);
+    },
+    // A horizontal  [−]  caption  [+]  pair, e.g. brightness.
+    stepper(down, title, up) {
+      const d = btn(down), u = btn(up);
+      return d || u ? el("div", { class: "hrocker" },
+        [d || el("div"), el("span", { text: title }), u || el("div")]) : null;
+    },
   };
-  const folded = (key, title, body) => {
-    if (!body) return;
-    const d = el("details", { class: "tv-sec" }, [el("summary", { text: title }), body]);
-    d.open = tvOpen.get(key);
-    d.addEventListener("toggle", () => tvOpen.set(key, d.open));
-    card.appendChild(d);
-  };
+}
 
-  section(null, box("tv-row", [
+function renderLight(a) {
+  const st = a.light && a.light.state;
+  const isOn = !!st && st.power === "on";
+  const card = cardShell(a.nickname, "照明",
+    st && st.power ? { text: isOn ? "点灯中" : "消灯", on: isOn } : null);
+  card.classList.add("light");
+
+  // Like the TV input, the power state only comes back on the next refresh.
+  const setPower = power => () => {
+    a.light.state = Object.assign({}, a.light.state, { power });
+    card.replaceWith(renderLight(a));
+  };
+  const p = buttonPanel(card, (a.light && a.light.buttons) || [], LIGHT_LABELS, LIGHT_ICONS,
+    name => api(`/api/appliances/${a.id}/light`, { button: name }));
+  const known = !!st && !!st.power;
+
+  p.section(null, p.box("btn-row big", [
+    p.btn("on", { tile: true, class: "lamp", pressed: known ? isOn : undefined, after: setPower("on") }),
+    p.btn("off", { tile: true, pressed: known ? !isOn : undefined, after: setPower("off") }) ||
+      p.btn("all-off", { tile: true, after: setPower("off") }),
+  ]));
+  p.section(null, p.stepper("bright-down", "明るさ", "bright-up"));
+  p.section(null, p.stepper("colortemp-down", "色温度", "colortemp-up"));
+  p.section("シーン", p.box("btn-row", [
+    p.btn("on-100", { tile: true, after: setPower("on") }),
+    p.btn("on-favorite", { tile: true, after: setPower("on") }),
+    p.btn("night", { tile: true, after: setPower("on") }),
+    p.btn("all-off", { tile: true, after: setPower("off") }),
+  ]));
+  p.section("その他", p.box("grid", p.rest()));
+  return card;
+}
+
+function renderTV(a) {
+  const st = a.tv && a.tv.state;
+  const input = st && st.input ? (INPUT_LABELS[st.input] || st.input.toUpperCase()) : "";
+  const card = cardShell(a.nickname, "テレビ", input ? { text: input } : null);
+
+  const p = buttonPanel(card, (a.tv && a.tv.buttons) || [], TV_LABELS, TV_ICONS,
+    name => api(`/api/appliances/${a.id}/tv`, { button: name }));
+  const { avail, btn, box, first, section, folded } = p;
+
+  section(null, box("btn-row", [
     btn("power", { class: "power" }),
     first("select-input-src", "input", "source"),
     btn("mute"),
@@ -553,7 +661,7 @@ function renderTV(a) {
     section(null, el("div", { class: "tv-pad" }, [vol || el("div"), dpad || el("div"), ch || el("div")]));
   }
 
-  section(null, box("tv-row", [btn("back"), btn("home"), btn("menu"), btn("tv-schedule"), btn("program-info")]));
+  section(null, box("btn-row", [btn("back"), btn("home"), btn("menu"), btn("tv-schedule"), btn("program-info")]));
 
   section(null, box("colors", Object.entries(TV_COLORS).map(([name, c]) =>
     btn(name, { text: "", style: `--c:${c}` }))));
@@ -564,11 +672,24 @@ function renderTV(a) {
     btn("record", { class: "rec" }),
   ]));
 
-  folded("more", "その他", box("grid",
-    ((a.tv && a.tv.buttons) || []).map(b => btn(b.name))));
+  folded("more", "その他", box("grid", p.rest()));
 
   return card;
 }
+
+function roomLine(a) {
+  const ev = a.device && a.device.newest_events;
+  if (!ev) return "";
+  const bits = [];
+  if (ev.te) bits.push(`室温 ${ev.te.val.toFixed(1)}℃`);
+  if (ev.hu) bits.push(`湿度 ${Math.round(ev.hu.val)}%`);
+  return bits.join(" · ");
+}
+
+// "auto" (or the empty "unspecified" value) first, then 1, 2, 3..., then
+// named settings such as "swing".
+const settingRank = v => (v === "auto" || v === "") ? -1 : (isNaN(Number(v)) ? 1e9 : Number(v));
+const autoFirst = vals => vals.slice().sort((x, y) => settingRank(x) - settingRank(y));
 
 function renderAircon(a) {
   const s = a.settings || { temp: "", mode: "cool", vol: "", dir: "", button: "" };
@@ -576,8 +697,11 @@ function renderAircon(a) {
   const unit = (a.aircon && a.aircon.tempUnit) === "f" ? "°F" : "℃";
   const isOn = s.button !== "power-off";
 
-  const card = cardShell(a.nickname, "エアコン",
+  const card = cardShell(a.nickname, roomLine(a) || "エアコン",
     { text: isOn ? `運転中 ${MODE_LABELS[s.mode] || s.mode}` : "停止", on: isOn });
+  card.classList.add("ac");
+  card.classList.toggle("off", !isOn);
+  card.dataset.mode = s.mode;
 
   const send = patch => api(`/api/appliances/${a.id}/aircon`, patch).then(r => {
     Object.assign(a.settings || (a.settings = {}), r.settings);
@@ -586,17 +710,10 @@ function renderAircon(a) {
     return r;
   });
 
-  // Power
-  const power = el("div", { class: "seg", style: "margin-bottom:12px" });
-  const onBtn = el("button", { text: "運転", "aria-pressed": String(isOn) });
-  const offBtn = el("button", { text: "停止", "aria-pressed": String(!isOn) });
-  onBtn.addEventListener("click", action(onBtn, () => send({ button: "" })));
-  offBtn.addEventListener("click", action(offBtn, () => send({ button: "power-off" })));
-  power.append(onBtn, offBtn);
-  card.appendChild(power);
-
-  // Temperature
-  const range = (modes[s.mode] && modes[s.mode].temp) || [];
+  // Temperature with the power toggle beside it. Some modes (often 除湿)
+  // have no settable temperature; their range is empty or [""].
+  const range = ((modes[s.mode] && modes[s.mode].temp) || []).filter(Boolean);
+  const hero = el("div", { class: "ac-hero" });
   if (range.length) {
     const idx = Math.max(0, range.indexOf(s.temp));
     const out = el("output", { text: `${s.temp || "--"}${unit}` });
@@ -606,8 +723,26 @@ function renderAircon(a) {
     plus.disabled = idx >= range.length - 1;
     minus.addEventListener("click", action(minus, () => send({ temperature: range[idx - 1] })));
     plus.addEventListener("click", action(plus, () => send({ temperature: range[idx + 1] })));
-    card.appendChild(el("div", { class: "temp", style: "margin-bottom:14px" }, [minus, out, plus]));
+    hero.appendChild(el("div", { class: "temp" }, [minus, out, plus]));
+  } else {
+    hero.appendChild(el("div", { class: "ac-notemp", text: "温度設定なし" }));
   }
+  const power = iconTile(el("button", {
+    class: "ac-power", "aria-pressed": String(isOn), title: isOn ? "停止する" : "運転する",
+  }), POWER_ICON, isOn ? "停止" : "運転");
+  power.addEventListener("click", action(power, () => send({ button: isOn ? "power-off" : "" })));
+  hero.appendChild(power);
+  card.appendChild(hero);
+
+  // Picking a mode while stopped also starts the unit, as on most remotes.
+  const tiles = el("div", { class: "ac-modes" });
+  for (const m of Object.keys(modes)) {
+    const b = iconTile(el("button", { "aria-pressed": String(m === s.mode), "data-mode": m }),
+      MODE_ICONS[m], MODE_LABELS[m] || m);
+    b.addEventListener("click", action(b, () => send({ operation_mode: m })));
+    tiles.appendChild(b);
+  }
+  if (tiles.children.length > 1) card.appendChild(el("div", { class: "sec" }, [tiles]));
 
   const addSeg = (labelText, values, current, fmt, key) => {
     if (!values || values.length < 2) return;
@@ -619,25 +754,50 @@ function renderAircon(a) {
     }
     card.appendChild(el("div", { class: "row" }, [el("label", { text: labelText }), seg]));
   };
-
-  addSeg("モード", Object.keys(modes), s.mode, v => MODE_LABELS[v] || v, "operation_mode");
   const cur = modes[s.mode] || {};
-  addSeg("風量", cur.vol, s.vol, volLabel, "air_volume");
-  addSeg("風向", cur.dir, s.dir, dirLabel, "air_direction");
+  addSeg("風量", autoFirst(cur.vol || []), s.vol, volLabel, "air_volume");
+  addSeg("風向", autoFirst(cur.dir || []), s.dir, dirLabel, "air_direction");
+  addSeg("左右", autoFirst(cur.dirh || []), s.dirh, dirLabel, "air_direction_h");
+
+  // One-shot buttons such as 風向スイング that sit outside the settings.
+  const extra = ((a.aircon && a.aircon.range && a.aircon.range.fixedButtons) || [])
+    .filter(b => b !== "power-off");
+  if (extra.length) {
+    const row = el("div", { class: "btn-row" });
+    for (const name of extra) {
+      const b = el("button", { text: AC_BUTTON_LABELS[name] || name.replace(/-/g, " ") });
+      b.addEventListener("click", action(b, () => send({ button: name })));
+      row.appendChild(b);
+    }
+    card.appendChild(el("div", { class: "sec" }, [row]));
+  }
 
   return card;
 }
 
+// Learned (IR) remotes. A power signal gets the prominent slot up top.
 function renderSignals(a) {
   if (!a.signals || !a.signals.length) return null;
-  const card = cardShell(a.nickname, a.type === "IR" ? "リモコン" : a.type);
-  const row = el("div", { class: "grid" });
-  for (const sig of a.signals) {
-    const btn = el("button", { text: sig.name });
-    btn.addEventListener("click", action(btn, () => api(`/api/signals/${sig.id}/send`, {})));
-    row.appendChild(btn);
+  const isLight = a.image === "ico_light";
+  const card = cardShell(a.nickname, isLight ? "照明（学習リモコン）" : "リモコン");
+  const isPower = sig => sig.image === "ico_io" || /^(電源|power|on\/off)$/i.test(sig.name);
+  const send = sig => api(`/api/signals/${sig.id}/send`, {});
+
+  const power = a.signals.find(isPower);
+  if (power) {
+    const b = iconTile(el("button", { class: `ir-power ${isLight ? "lamp" : ""}`, title: power.name }),
+      isLight ? LIGHT_ICONS.on : POWER_ICON, power.name);
+    b.addEventListener("click", action(b, () => send(power)));
+    card.appendChild(el("div", { class: "sec" }, [b]));
   }
-  card.appendChild(row);
+  const row = el("div", { class: "grid ir" });
+  for (const sig of a.signals) {
+    if (sig === power) continue;
+    const b = el("button", { text: sig.name, title: sig.name });
+    b.addEventListener("click", action(b, () => send(sig)));
+    row.appendChild(b);
+  }
+  if (row.children.length) card.appendChild(el("div", { class: "sec" }, [row]));
   return card;
 }
 
