@@ -467,7 +467,7 @@ function renderSignals(a) {
   const row = el("div", { class: "grid" });
   for (const sig of a.signals) {
     const btn = el("button", { text: sig.name });
-    btn.addEventListener("click", action(btn, () => api(`/api/signals/${sig.id}/send`)));
+    btn.addEventListener("click", action(btn, () => api(`/api/signals/${sig.id}/send`, {})));
     row.appendChild(btn);
   }
   card.appendChild(row);
@@ -480,7 +480,7 @@ function renderLocalCard(signals) {
   const row = el("div", { class: "grid" });
   for (const sig of signals) {
     const btn = el("button", { text: sig.name });
-    btn.addEventListener("click", action(btn, () => api(`/api/local/signals/${sig.id}/send`)));
+    btn.addEventListener("click", action(btn, () => api(`/api/local/signals/${sig.id}/send`, {})));
     row.appendChild(btn);
   }
   card.appendChild(row);
