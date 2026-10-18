@@ -46,7 +46,8 @@ func appliances() string {
      "il":{"val":87,"created_at":"2026-10-10T00:00:00Z"}}},
   "settings":{"temp":"%s","temp_unit":"c","mode":"%s","vol":"%s","dir":"%s","dirh":"","button":"%s",
               "updated_at":"2026-10-10T00:00:00Z"},
-  "aircon":{"tempUnit":"c","range":{"fixedButtons":["power-off"],"modes":{
+  "aircon":{"tempUnit":"c","range":{"fixedButtons":["airdir-swing","power-off"],"modes":{
+     "auto":{"temp":["20","21","22","23","24","25","26"],"vol":["1","auto"],"dir":[""],"dirh":[]},
      "cool":{"temp":["20","21","22","23","24","25","26","27","28"],"vol":["auto","1","2","3"],"dir":["auto","1","2","swing"],"dirh":[]},
      "warm":{"temp":["18","19","20","21","22","23","24"],"vol":["auto","1","2"],"dir":["auto","1"],"dirh":[]},
      "dry":{"temp":[""],"vol":["auto"],"dir":["auto"],"dirh":[]}}}},
@@ -55,10 +56,15 @@ func appliances() string {
  {"id":"light-1","nickname":"寝室の照明","image":"ico_light","type":"LIGHT",
   "device":{"id":"dev-1","name":"Remo リビング","newest_events":{}},
   "light":{"state":{"brightness":"","power":"on","last_button":"on"},
-   "buttons":[{"name":"on","image":"ico_on","label":"Light_all"},
-              {"name":"off","image":"ico_off","label":"Light_off"},
-              {"name":"night","image":"ico_night","label":"Light_night"},
-              {"name":"bright-up","image":"ico_up","label":"Light_bright_up"}]},
+   "buttons":[{"name":"on","image":"","label":""},
+              {"name":"off","image":"","label":""},
+              {"name":"on-100","image":"","label":""},
+              {"name":"on-favorite","image":"","label":""},
+              {"name":"night","image":"","label":""},
+              {"name":"bright-up","image":"","label":""},
+              {"name":"bright-down","image":"","label":""},
+              {"name":"colortemp-up","image":"","label":""},
+              {"name":"colortemp-down","image":"","label":""}]},
   "signals":[],"model":{"id":"m2","name":"Light"}},
 
  {"id":"tv-1","nickname":"テレビ","image":"ico_tv","type":"TV",
@@ -116,6 +122,13 @@ func appliances() string {
               {"name":"forward-30-sec","image":"","label":""},
               {"name":"hulu","image":"","label":""}]},
   "signals":[],"model":{"id":"m3","name":"TV"}},
+
+ {"id":"ir-2","nickname":"天井照明","image":"ico_light","type":"IR",
+  "device":{"id":"dev-1","name":"Remo リビング","newest_events":{}},
+  "signals":[{"id":"sig-l1","name":"電源","image":"ico_io"},
+             {"id":"sig-l2","name":"60%%","image":"ico_number_6"},
+             {"id":"sig-l3","name":"明るさ最大","image":"ico_number_10"}],
+  "model":{"id":"m5","name":"IR"}},
 
  {"id":"ir-1","nickname":"サーキュレーター","image":"ico_fan","type":"IR",
   "device":{"id":"dev-1","name":"Remo リビング","newest_events":{}},
