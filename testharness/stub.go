@@ -121,7 +121,12 @@ func appliances() string {
               {"name":"rewind-10-sec","image":"","label":""},
               {"name":"forward-30-sec","image":"","label":""},
               {"name":"hulu","image":"","label":""}]},
-  "signals":[],"model":{"id":"m3","name":"TV"}},
+  "signals":[{"id":"sig-tv-bs","name":"BS","image":"ico_bs"},
+             {"id":"sig-tv-cs","name":"CS","image":"ico_cs"},
+             {"id":"sig-tv-hulu","name":"Hulu","image":"ico_h"},
+             {"id":"sig-tv-opt","name":"オプション","image":"ico_option"},
+             {"id":"sig-tv-rec","name":"録画一覧","image":"ico_input"}],
+  "model":{"id":"m3","name":"TV"}},
 
  {"id":"ir-2","nickname":"天井照明","image":"ico_light","type":"IR",
   "device":{"id":"dev-1","name":"Remo リビング","newest_events":{}},
