@@ -175,6 +175,10 @@
   /* A learned remote has no state, so only the icon hints at the lamp. */
   button.ir-power.lamp svg { color: var(--lamp); }
   button.ir-power { width: 100%; padding: 12px; }
+  /* Learned signal names are free text, so a long one like "オフタイマー"
+     gets the width it needs instead of an equal column it overflows. */
+  .grid.ir { display: flex; flex-wrap: wrap; }
+  .grid.ir button { flex: 1 0 64px; padding: 10px 8px; font-size: 14px; white-space: nowrap; }
 
   .hrocker {
     display: grid; grid-template-columns: 52px 1fr 52px; align-items: center;
@@ -786,10 +790,10 @@ function renderSignals(a) {
     b.addEventListener("click", action(b, () => send(power)));
     card.appendChild(el("div", { class: "sec" }, [b]));
   }
-  const row = el("div", { class: "grid" });
+  const row = el("div", { class: "grid ir" });
   for (const sig of a.signals) {
     if (sig === power) continue;
-    const b = el("button", { text: sig.name });
+    const b = el("button", { text: sig.name, title: sig.name });
     b.addEventListener("click", action(b, () => send(sig)));
     row.appendChild(b);
   }
