@@ -250,6 +250,19 @@ func decodeJSON(r *http.Request, v any) error {
 // Handlers
 // ---------------------------------------------------------------------------
 
+// How old a cached appliance list may be before /api/state refetches it.
+//
+// Opening the page or pressing 更新 wants reasonably current data. The tab's
+// periodic refresh (every 2 minutes) does not: with the 60 second limit every
+// one of its polls found the cache expired, so an idle tab alone spent 2-3 of
+// the 30 requests allowed per 5 minutes. Sensor readings and state changed
+// from elsewhere still show up within a few minutes; changes made from this
+// panel update the cache or the page directly.
+const (
+	listMaxAge       = 60 * time.Second
+	backgroundMaxAge = 5 * time.Minute
+)
+
 type stateResponse struct {
 	Configured    bool          `json:"configured"`
 	RemoLocalHost string        `json:"remoLocalHost"`
@@ -277,9 +290,12 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if snap.Token != "" {
-		maxAge := 60 * time.Second
-		if r.URL.Query().Get("refresh") == "1" {
+		maxAge := listMaxAge
+		switch {
+		case r.URL.Query().Get("refresh") == "1":
 			maxAge = 0
+		case r.URL.Query().Get("bg") == "1":
+			maxAge = backgroundMaxAge
 		}
 		list, stale, err := s.cloud.Appliances(r.Context(), maxAge)
 		if err != nil {

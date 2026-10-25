@@ -901,9 +901,12 @@ function render() {
   }
 }
 
+// refresh: true forces a refetch (更新), "bg" marks the periodic poll, which
+// the server answers from a longer-lived cache.
 async function load(refresh) {
   try {
-    state = await api("/api/state" + (refresh ? "?refresh=1" : ""));
+    const q = refresh === "bg" ? "?bg=1" : refresh ? "?refresh=1" : "";
+    state = await api("/api/state" + q);
     render();
   } catch (e) {
     toast(e.message, true);
@@ -993,8 +996,8 @@ $("#saveSettings").addEventListener("click", (e) => action(e.target, async () =>
 
 load(false);
 // A light background refresh keeps sensor readings current without burning
-// the rate limit; the server only hits the API when its cache has expired.
-setInterval(() => { if (!dlg.open && !document.hidden) load(false); }, 120000);
+// the rate limit: the server serves it from cache for up to 5 minutes.
+setInterval(() => { if (!dlg.open && !document.hidden) load("bg"); }, 120000);
 </script>
 </body>
 </html>

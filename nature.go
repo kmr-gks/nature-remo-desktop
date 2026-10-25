@@ -131,7 +131,15 @@ type Cloud struct {
 	mu        sync.RWMutex
 	cache     []Appliance
 	cacheAt   time.Time
+	inflight  *listFetch
 	rateLimit RateLimit
+}
+
+// listFetch is one upstream GET /1/appliances that concurrent callers share.
+type listFetch struct {
+	done chan struct{}
+	list []Appliance
+	err  error
 }
 
 func NewCloud(cfg *Config) *Cloud {
@@ -210,32 +218,60 @@ func (c *Cloud) do(ctx context.Context, method, path string, form url.Values, ou
 // fresh. The cache matters: the Cloud API throttles above 30 requests per
 // 5 minutes, and a UI that refetched on every click would exhaust that fast.
 //
+// Callers that arrive while a fetch is already under way wait for it instead
+// of starting their own. Several tabs or devices tend to refresh at the same
+// moment, and without this each of them went upstream when the cache expired.
+//
 // The bool reports *stale* data — a fallback to the last known list after the
 // API call failed — not an ordinary cache hit, which is the normal case and
 // nothing the user needs to be told about.
 func (c *Cloud) Appliances(ctx context.Context, maxAge time.Duration) ([]Appliance, bool, error) {
-	c.mu.RLock()
+	c.mu.Lock()
 	cached, at := c.cache, c.cacheAt
-	c.mu.RUnlock()
-
 	if cached != nil && maxAge > 0 && time.Since(at) < maxAge {
+		c.mu.Unlock()
 		return cached, false, nil
 	}
+	f := c.inflight
+	if f == nil {
+		f = &listFetch{done: make(chan struct{})}
+		c.inflight = f
+		// Detach from this caller's context: others may be waiting on the
+		// result, and one closed tab must not fail the fetch for all of them.
+		// The HTTP client's own timeout still bounds it.
+		go c.fetchAppliances(context.WithoutCancel(ctx), f)
+	}
+	c.mu.Unlock()
 
-	var list []Appliance
-	if err := c.do(ctx, http.MethodGet, "/1/appliances", nil, &list); err != nil {
+	select {
+	case <-f.done:
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	}
+	if f.err != nil {
 		// Serve stale data rather than an empty panel when we are throttled
 		// or briefly offline; the buttons still work.
 		if cached != nil {
 			return cached, true, nil
 		}
-		return nil, false, err
+		return nil, false, f.err
 	}
+	return f.list, false, nil
+}
+
+func (c *Cloud) fetchAppliances(ctx context.Context, f *listFetch) {
+	var list []Appliance
+	err := c.do(ctx, http.MethodGet, "/1/appliances", nil, &list)
 
 	c.mu.Lock()
-	c.cache, c.cacheAt = list, time.Now()
+	if err == nil {
+		c.cache, c.cacheAt = list, time.Now()
+	}
+	c.inflight = nil
 	c.mu.Unlock()
-	return list, false, nil
+
+	f.list, f.err = list, err
+	close(f.done)
 }
 
 func (c *Cloud) findAppliance(id string) (Appliance, bool) {
@@ -249,13 +285,18 @@ func (c *Cloud) findAppliance(id string) (Appliance, bool) {
 	return Appliance{}, false
 }
 
+// updateCachedSettings swaps in a modified copy of the list rather than
+// editing it in place: Appliances hands the cached slice out without a lock,
+// and a handler may be encoding it to JSON at this very moment.
 func (c *Cloud) updateCachedSettings(id string, s AirconSettings) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for i := range c.cache {
 		if c.cache[i].ID == id {
+			next := append([]Appliance(nil), c.cache...)
 			cp := s
-			c.cache[i].Settings = &cp
+			next[i].Settings = &cp
+			c.cache = next
 			return
 		}
 	}
